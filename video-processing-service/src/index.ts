@@ -134,30 +134,37 @@ const messageHandler = async (message: Message) => {
     console.log(`\tAttributes: ${JSON.stringify(message.attributes)}`);
     let messageData = JSON.parse(message.data.toString('utf-8'));
     let fileName = messageData.name
-    let userId = messageData.userId
-
-    console.log(fileName)
-    if (!fileName) {
+    let videoFile = videoBucket.file(fileName)
+    let metadata: any = videoFile.metadata
+    let userId: string = metadata.userId
+    let videoName: string = metadata.videoName
+    if (!fileName || !userId || !videoName) {
         message.ack()
         return
     }
+
     try {
-        //TODO: fill in the metadata using the metadata of the video in the cloud bucket.
+        let status = await videoMetadataManager.getStatus(fileName)
+        if (status == VideoProcessingStatus.Processing || status == VideoProcessingStatus.Processed) {
+            message.ack()
+            return
+        }
+
         await videoMetadataManager.saveVideoMetadata(fileName, {
-            userId: "TEST",
-            videoName: "TEST",
+            userId: userId,
+            videoName: videoName,
             status: VideoProcessingStatus.Processing
         })
         await process_video(fileName, videoQualities)
+        await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Processed)
+        message.ack()
     } catch (err) {
-        console.log(err)
+        //if processing failed, set status to undefined, and wait for PubSub to send message again.
+        await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Undefined)
     }
-
-    message.ack();
 };
 
 videoUploadSubscriber.subscribeTo(topicName, subscriptionName, messageHandler)
-
 
 // const pubsub = new PubSub({ keyFilename: 'key.json' });
 // const topic = pubsub.topic("video-uploaded")
