@@ -16,7 +16,7 @@ type VideoMetadata = {
     userId: string
     videoName: string,
     status: VideoProcessingStatus,
-    timestamp: Timestamp
+    timestamp: Timestamp,
 };
 
 
@@ -37,20 +37,27 @@ class VideoMetadataManager {
         await videoDocument.set(videoMetadata);
     }
 
+    async saveTranscodedVideoMapping(videoId: string, resolutionToVideoId: Map<number, string>) {
+        const videoDocument = this.videoCollection.doc(videoId)
+        await videoDocument.update({
+            resolutionToVideoId: Object.fromEntries(resolutionToVideoId.entries())
+        })
+    }
+
     async getStatus(videoId: string): Promise<VideoProcessingStatus> {
         const videoDocument = this.videoCollection.doc(videoId)
         let docSnapshot = await videoDocument.get()
         if (docSnapshot.exists) {
             const data = docSnapshot.data();
-            console.log(data)
+
             if (data) {
                 const status = data.status
                 return status
             } else {
-                throw new Error("Video not found")
+                return VideoProcessingStatus.Undefined
             }
         } else {
-            throw new Error("Video not found")
+            return VideoProcessingStatus.Undefined
         }
     }
 
