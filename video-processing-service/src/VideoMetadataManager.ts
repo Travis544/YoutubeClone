@@ -5,23 +5,35 @@ const serviceAccount = require("../firebaseKey.json")
 
 enum VideoProcessingStatus {
     //an error occurred while processing the video
-    Undefined,
+    Undefined = "Undefined",
     //the video is currently being processed
-    Processing,
-    Processed
+    Processing = "Processing",
+    Processed = "Processed"
 }
+
+
+type VideoMetadata = {
+    userId: string
+    videoName: string,
+    status: VideoProcessingStatus
+};
+
 
 class VideoMetadataManager {
     db: Firestore
     videoCollection: CollectionReference
 
     constructor() {
-        console.log(serviceAccount)
         initializeApp({
             credential: cert(serviceAccount)
         });
         this.db = getFirestore();
         this.videoCollection = this.db.collection('Video')
+    }
+
+    async saveVideoMetadata(videoId: string, videoMetadata: VideoMetadata) {
+        const videoDocument = this.videoCollection.doc(videoId)
+        await videoDocument.set(videoMetadata);
     }
 
     async getStatus(videoId: string): Promise<VideoProcessingStatus> {
@@ -41,7 +53,7 @@ class VideoMetadataManager {
         }
     }
 
-    async setStatus(videoId: string, status: VideoProcessingStatus): Promise<void> {
+    async updateStatus(videoId: string, status: VideoProcessingStatus): Promise<void> {
         const videoDocument = this.videoCollection.doc(videoId)
         await videoDocument.update({
             status: status
@@ -52,5 +64,6 @@ class VideoMetadataManager {
 
 export {
     VideoMetadataManager,
-    VideoProcessingStatus
+    VideoProcessingStatus,
+    VideoMetadata
 }

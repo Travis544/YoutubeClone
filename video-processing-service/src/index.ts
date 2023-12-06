@@ -7,11 +7,13 @@ import fs from 'fs';
 import stream from 'stream';
 import { spawn } from 'child_process';
 import TopicSubscriber from "./TopicSubscriber";
-import { VideoMetadataManager, VideoProcessingStatus } from "./VideoMetadataManager";
+import { VideoMetadataManager, VideoProcessingStatus, VideoMetadata } from "./VideoMetadataManager";
 import { Message, PubSub } from "@google-cloud/pubsub";
 import test from "node:test";
+//gcloud storage buckets notifications create gs://uploaded-video-bucket --topic=video-uploaded --event-types=OBJECT_FINALIZE
 
 const UPLOADED_VIDEO_BUCKET_NAME = "uploaded-video-bucket"
+const TRANSCODE_VIDEO_BUCKET_NAME = "transcoded-videos-bucket"
 
 const app = express()
 //add middleware to handle request converting them to JSON
@@ -19,15 +21,16 @@ app.use(express.json())
 
 const storage = new Storage({ keyFilename: 'key.json' });
 const videoBucket = storage.bucket(UPLOADED_VIDEO_BUCKET_NAME);
+const transcodedVideoBucket = storage.bucket(TRANSCODE_VIDEO_BUCKET_NAME);
 
 type Resolution = {
     width: number,
     height: number
 };
 
-function uploadVideoToBucket(transcodedVideoFileName: string, resolution: Resolution) {
+function uploadTranscodedVideoToBucket(transcodedVideoFileName: string, resolution: Resolution) {
     return new Promise((resolve, reject) => {
-        const transcodedVideoFile = videoBucket.file(transcodedVideoFileName);
+        const transcodedVideoFile = transcodedVideoBucket.file(transcodedVideoFileName);
         const readableStream = fs.createReadStream(transcodedVideoFileName)
         readableStream.pipe(transcodedVideoFile.createWriteStream().on('finish', () => {
 
@@ -78,7 +81,7 @@ async function process_video(fileName: string, videoQualities: Array<Resolution>
                 let promise: Promise<string> = new Promise(async (resolve, reject) => {
                     try {
                         const transcodedVideoFileName = await transcodeVideo(fileName, resolution)
-                        await uploadVideoToBucket(transcodedVideoFileName, resolution)
+                        await uploadTranscodedVideoToBucket(transcodedVideoFileName, resolution)
                         resolve(transcodedVideoFileName)
                     } catch (err) {
                         console.log(err)
@@ -112,16 +115,13 @@ app.post("/process-video", async (req, res) => {
     try {
         await process_video(fileName, videoQualities)
         res.status(200).send("Video processing success")
-    } catch {
+    } catch (err) {
         res.status(500).send("Video processing failed")
     }
 })
 
 
 const videoMetadataManager = new VideoMetadataManager()
-videoMetadataManager.getStatus("TEST")
-
-
 
 const topicName = 'video-uploaded';
 const subscriptionName = 'video-uploaded-sub';
@@ -129,23 +129,34 @@ let videoUploadSubscriber = new TopicSubscriber()
 
 const messageHandler = async (message: Message) => {
     const videoQualities: Array<Resolution> = [{ width: 640, height: 360 }]
-    console.log(`Received message ${message.id}:`);
+    // console.log(`Received message ${message.id}:`);
     console.log(`\tData: ${message.data}`);
-    console.log(`\tAttributes: ${message.attributes}`);
+    console.log(`\tAttributes: ${JSON.stringify(message.attributes)}`);
     let messageData = JSON.parse(message.data.toString('utf-8'));
-    let fileName = messageData.fileName
+    let fileName = messageData.name
+    let userId = messageData.userId
+
+    console.log(fileName)
     if (!fileName) {
         message.ack()
         return
     }
+    try {
+        //TODO: fill in the metadata using the metadata of the video in the cloud bucket.
+        await videoMetadataManager.saveVideoMetadata(fileName, {
+            userId: "TEST",
+            videoName: "TEST",
+            status: VideoProcessingStatus.Processing
+        })
+        await process_video(fileName, videoQualities)
+    } catch (err) {
+        console.log(err)
+    }
 
-    await process_video(fileName, videoQualities)
     message.ack();
 };
 
 videoUploadSubscriber.subscribeTo(topicName, subscriptionName, messageHandler)
-
-
 
 
 // const pubsub = new PubSub({ keyFilename: 'key.json' });
