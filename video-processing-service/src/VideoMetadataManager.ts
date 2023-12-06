@@ -15,7 +15,8 @@ enum VideoProcessingStatus {
 type VideoMetadata = {
     userId: string
     videoName: string,
-    status: VideoProcessingStatus
+    status: VideoProcessingStatus,
+    timestamp: Timestamp
 };
 
 

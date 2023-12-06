@@ -153,7 +153,8 @@ const messageHandler = async (message: Message) => {
         await videoMetadataManager.saveVideoMetadata(fileName, {
             userId: userId,
             videoName: videoName,
-            status: VideoProcessingStatus.Processing
+            status: VideoProcessingStatus.Processing,
+            timestamp: messageData.timeCreated
         })
         await process_video(fileName, videoQualities)
         await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Processed)
