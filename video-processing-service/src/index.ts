@@ -1,11 +1,15 @@
-import { error } from "console"
+
 import express from "express"
 import ffmpeg from "fluent-ffmpeg"
 // Imports the Google Cloud client library
 import { Storage, FileMetadata, File } from '@google-cloud/storage';
 import fs from 'fs';
 import stream from 'stream';
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
+import TopicSubscriber from "./TopicSubscriber";
+import { VideoMetadataManager, VideoProcessingStatus } from "./VideoMetadataManager";
+import { Message, PubSub } from "@google-cloud/pubsub";
+import test from "node:test";
 
 const UPLOADED_VIDEO_BUCKET_NAME = "uploaded-video-bucket"
 
@@ -22,7 +26,6 @@ type Resolution = {
 };
 
 function uploadVideoToBucket(transcodedVideoFileName: string, resolution: Resolution) {
-    // Create a pass through stream from a string
     return new Promise((resolve, reject) => {
         const transcodedVideoFile = videoBucket.file(transcodedVideoFileName);
         const readableStream = fs.createReadStream(transcodedVideoFileName)
@@ -43,6 +46,121 @@ function uploadVideoToBucket(transcodedVideoFileName: string, resolution: Resolu
         })
     })
 }
+
+
+function transcodeVideo(fileName: string, resolution: Resolution): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const transcodedFileName = `${resolution.height}_${fileName}`
+        ffmpeg(fileName)
+            .outputOption("-vf", `scale=-1:${resolution.height}`)
+            .on('progress', function (progress) {
+                console.log('Processing: ' + progress.percent + '% done');
+            })
+            .on("end", () => {
+                resolve(transcodedFileName)
+            }).on("error", (err) => {
+                console.log("GOT ERROR")
+                console.log(err)
+                reject(err)
+            }).save(transcodedFileName)
+    })
+}
+
+
+async function process_video(fileName: string, videoQualities: Array<Resolution>): Promise<void> {
+    //read the video file.
+    videoBucket.file(fileName).createReadStream().pipe(
+        fs.createWriteStream(fileName))
+        .on('finish', () => {
+            // when video file finishes reading and is written to disk, start transcoding.
+            const transcodePromises: Array<Promise<string>> = []
+            for (let resolution of videoQualities) {
+                let promise: Promise<string> = new Promise(async (resolve, reject) => {
+                    try {
+                        const transcodedVideoFileName = await transcodeVideo(fileName, resolution)
+                        await uploadVideoToBucket(transcodedVideoFileName, resolution)
+                        resolve(transcodedVideoFileName)
+                    } catch (err) {
+                        console.log(err)
+                        reject(err)
+                    }
+                })
+                transcodePromises.push(promise)
+            }
+
+            Promise.allSettled(transcodePromises).then((results) => {
+                let isAllFulfilled = results.every(result => result.status == "fulfilled")
+                if (isAllFulfilled) {
+                    fs.unlinkSync(fileName)
+                } else {
+                    fs.unlinkSync(fileName)
+                    throw new Error("Video process failed")
+                }
+            });
+        });
+}
+
+
+app.post("/process-video", async (req, res) => {
+    const fileName: string = req.body.fileName
+    //const outputFilePath: string = req.body.outputFilePath
+
+    if (!fileName) {
+        res.status(400).send("Bad request. Missing vide URI")
+    }
+    const videoQualities: Array<Resolution> = [{ width: 640, height: 360 }]
+    try {
+        await process_video(fileName, videoQualities)
+        res.status(200).send("Video processing success")
+    } catch {
+        res.status(500).send("Video processing failed")
+    }
+})
+
+
+const videoMetadataManager = new VideoMetadataManager()
+videoMetadataManager.getStatus("TEST")
+
+
+
+const topicName = 'video-uploaded';
+const subscriptionName = 'video-uploaded-sub';
+let videoUploadSubscriber = new TopicSubscriber()
+
+const messageHandler = async (message: Message) => {
+    const videoQualities: Array<Resolution> = [{ width: 640, height: 360 }]
+    console.log(`Received message ${message.id}:`);
+    console.log(`\tData: ${message.data}`);
+    console.log(`\tAttributes: ${message.attributes}`);
+    let messageData = JSON.parse(message.data.toString('utf-8'));
+    let fileName = messageData.fileName
+    if (!fileName) {
+        message.ack()
+        return
+    }
+
+    await process_video(fileName, videoQualities)
+    message.ack();
+};
+
+videoUploadSubscriber.subscribeTo(topicName, subscriptionName, messageHandler)
+
+
+
+
+// const pubsub = new PubSub({ keyFilename: 'key.json' });
+// const topic = pubsub.topic("video-uploaded")
+// const testData = {
+//     fileName: ""
+// }
+// topic.publishMessage({ data: Buffer.from(JSON.stringify(testData)) });
+
+
+const port = process.env.PORT || 3000
+app.listen(port, () => {
+    console.log(`Video processing service listening at localhost${port}`)
+})
+
 
 // function transcodeVideoPipe(videoFile: File, resolution: Resolution): Promise<string> {
 //     return new Promise((resolve, reject) => {
@@ -80,85 +198,3 @@ function uploadVideoToBucket(transcodedVideoFileName: string, resolution: Resolu
 //         )
 //     })
 // }
-
-function transcodeVideo(fileName: string, resolution: Resolution): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const transcodedFileName = `${resolution.height}_${fileName}`
-        ffmpeg(fileName)
-            .outputOption("-vf", `scale=-1:${resolution.height}`)
-            .on('progress', function (progress) {
-                console.log('Processing: ' + progress.percent + '% done');
-            })
-            .on("end", () => {
-                resolve(transcodedFileName)
-            }).on("error", (err) => {
-                console.log("GOT ERROR")
-                console.log(err)
-                reject(err)
-            }).save(transcodedFileName)
-    })
-}
-
-
-app.post("/process-video", async (req, res) => {
-    const fileName: string = req.body.fileName
-    //const outputFilePath: string = req.body.outputFilePath
-
-    if (!fileName) {
-        res.status(400).send("Bad request. Missing vide URI")
-    }
-    const videoQualities: Array<Resolution> = [{ width: 640, height: 360 },
-    { width: 1280, height: 720 }]
-
-    //read the video file.
-    videoBucket.file(fileName).createReadStream().pipe(
-        fs.createWriteStream(fileName))
-        .on('finish', () => {
-            // when video file finishes reading and is written to disk, start transcoding.
-            const transcodePromises: Array<Promise<string>> = []
-            for (let resolution of videoQualities) {
-                let promise: Promise<string> = new Promise(async (resolve, reject) => {
-                    try {
-                        const transcodedVideoFileName = await transcodeVideo(fileName, resolution)
-                        await uploadVideoToBucket(transcodedVideoFileName, resolution)
-
-                        resolve(transcodedVideoFileName)
-                    } catch (err) {
-                        console.log(err)
-                        reject(err)
-                    }
-                })
-                transcodePromises.push(promise)
-            }
-
-            Promise.allSettled(transcodePromises).then((results) => {
-                let isAllFulfilled = results.every(result => result.status == "fulfilled")
-                if (isAllFulfilled) {
-                    fs.unlinkSync(fileName)
-                    res.status(200).send("Transcoding video complete")
-                } else {
-                    fs.unlinkSync(fileName)
-                    res.status(500).send("Transcoding video failed")
-                }
-            });
-        });
-})
-
-
-//Incomplete 
-app.post("/process-video-v2", async (req, res) => {
-    const fileName: string = req.body.fileName
-    if (!fileName) {
-        res.status(400).send("Bad request. Missing vide URI")
-    }
-    videoBucket.file(fileName).createReadStream().pipe(
-        fs.createWriteStream(fileName))
-        .on('finish', () => {
-
-        });
-})
-
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-    console.log(`Video processing service listening at localhost${port}`)
-})
