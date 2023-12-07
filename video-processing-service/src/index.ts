@@ -120,6 +120,11 @@ async function process_video(fileName: string): Promise<Map<number, string>> {
     });
 }
 
+app.post("/", async (req, res) => {
+    res.send("Hello world")
+})
+
+
 app.post("/process-video", async (req, res) => {
     const fileName: string = req.body.fileName
     //const outputFilePath: string = req.body.outputFilePath
