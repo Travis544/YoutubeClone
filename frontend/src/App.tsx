@@ -8,8 +8,11 @@ import {
   getFirestore,
 } from "firebase/firestore";
 
-//contains API key, project id information for this particular web app. This can be accessed in "Your apps" in the project settings
+/**contains API key, project id information for this particular web app. This configuration can be downloaded
+in "Your apps" in the project settings in Firebase
+**/
 import firebaseConfig from "./Firebase/key.json"
+import VideoUploadButton from './Components/VideoUploadButton';
 
 const app = initializeApp(firebaseConfig);
 
@@ -20,6 +23,7 @@ function App() {
   return (
     <div className="App">
       <AuthComponent auth={auth} />
+      <VideoUploadButton />
     </div>
   );
 }

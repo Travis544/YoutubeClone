@@ -29,8 +29,6 @@ async function writeUserDocument(user: UserRecord) {
 }
 
 exports.createUserDocument = functions.auth.user().onCreate((user: UserRecord) => {
-    logger.info(`Creating document for user...${user}`)
-    console.log(user)
     return writeUserDocument(user).then(() => {
         logger.info(`User document successfully created...${user}`)
     }).catch(() => {

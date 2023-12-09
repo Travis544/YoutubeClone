@@ -32,9 +32,6 @@ function AuthComponent(props: any) {
         });
     }, [props.auth]);
 
-
-
-
     return (
         <div>
             <div id="firebaseui-auth-container">
