@@ -130,7 +130,7 @@ app.post("/process-video", async (req, res) => {
     //const outputFilePath: string = req.body.outputFilePath
 
     if (!fileName) {
-        res.status(400).send("Bad request. Missing vide URI")
+        res.status(400).send("Bad request.")
     }
 
     try {
@@ -150,11 +150,16 @@ let videoUploadSubscriber = new TopicSubscriber()
 
 const messageHandler = async (message: Message) => {
     // console.log(`Received message ${message.id}:`);
-    console.log(`\tData: ${message.data}`);
-    console.log(`\tAttributes: ${JSON.stringify(message.attributes)}`);
+    // console.log(`\tData: ${message.data}`);
+    // console.log(`\tAttributes: ${JSON.stringify(message.attributes)}`);
+    console.log("received message, ")
     let messageData = JSON.parse(message.data.toString('utf-8'));
     let fileName = messageData.name
     try {
+        if (!fileName) {
+            console.log("File name not provided")
+        }
+
         let videoFile = videoBucket.file(fileName)
         let metadata: any = videoFile.metadata
         let userId: string = metadata.userId
@@ -176,6 +181,7 @@ const messageHandler = async (message: Message) => {
             status: VideoProcessingStatus.Processing,
             timestamp: messageData.timeCreated
         })
+        console.log("BEGIN PROCESSING VIDEO")
         let resolutionToFileId: Map<number, string> = await process_video(fileName)
         console.log(resolutionToFileId)
         await videoMetadataManager.saveTranscodedVideoMapping(fileName, resolutionToFileId)
@@ -183,6 +189,7 @@ const messageHandler = async (message: Message) => {
         message.ack()
     } catch (err) {
         console.log(err)
+        console.log("Processing failed, set status to undefined")
         //if processing failed, set status to undefined, and wait for PubSub to send message again.
         await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Undefined)
     }

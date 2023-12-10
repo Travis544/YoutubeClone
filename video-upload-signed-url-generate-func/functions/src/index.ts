@@ -12,6 +12,9 @@ import * as logger from "firebase-functions/logger";
 import { GetSignedUrlConfig } from '@google-cloud/storage';
 import { Storage } from '@google-cloud/storage';
 
+// import * as cors from "cors";
+// const corsHandler = cors({ origin: true });
+
 // Creates a client, loading the service account key.
 const storage = new Storage({ keyFilename: 'key.json' });
 const bucketName = 'uploaded-video-bucket';
@@ -36,15 +39,23 @@ async function generateV4UploadSignedUrl(fileName: string, contentType: string) 
     console.log(url);
     return url
 }
-exports.create_signed_url_for_video_upload = onRequest((req: any, res: any) => {
+
+
+exports.create_signed_url_for_video_upload = onRequest({ cors: true }, (req: any, res: any) => {
+    // corsHandler(req, res, async () => {
+
+    // });
+    // your function body here - use the provided req and res from cors
     const fileName = req.query.fileName
     const contentType = req.query.contentType
     logger.info(bucketName)
-    generateV4UploadSignedUrl(fileName, contentType).then((url) => {
 
-        res.json({ result: url })
+    generateV4UploadSignedUrl(fileName, contentType).then((url) => {
+        res.set('Access-Control-Allow-Origin', "*");
+        res.status(200).json({ result: url })
     }).catch((err) => {
         logger.error(err.message)
+        res.set('Access-Control-Allow-Origin', "*");
         res.status(500).json({ error: 'Signed url not generated successfully' })
     })
 
