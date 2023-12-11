@@ -12,15 +12,7 @@ enum VideoProcessingStatus {
 }
 
 
-type VideoMetadata = {
-    userId: string
-    videoName: string,
-    status: VideoProcessingStatus,
-    timestamp: Timestamp,
-};
-
-
-class VideoMetadataManager {
+class VideoStatusManager {
     db: Firestore
     videoCollection: CollectionReference
 
@@ -30,11 +22,6 @@ class VideoMetadataManager {
         });
         this.db = getFirestore();
         this.videoCollection = this.db.collection('Video')
-    }
-
-    async saveVideoMetadata(videoId: string, videoMetadata: VideoMetadata) {
-        const videoDocument = this.videoCollection.doc(videoId)
-        await videoDocument.set(videoMetadata);
     }
 
     async saveTranscodedVideoMapping(videoId: string, resolutionToVideoId: Map<number, string>) {
@@ -71,7 +58,7 @@ class VideoMetadataManager {
 
 
 export {
-    VideoMetadataManager,
+    VideoStatusManager,
     VideoProcessingStatus,
-    VideoMetadata
+
 }

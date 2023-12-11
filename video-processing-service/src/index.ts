@@ -7,7 +7,7 @@ import fs from 'fs';
 import stream from 'stream';
 import { spawn } from 'child_process';
 import TopicSubscriber from "./TopicSubscriber";
-import { VideoMetadataManager, VideoProcessingStatus, VideoMetadata } from "./VideoMetadataManager";
+import { VideoStatusManager, VideoProcessingStatus } from "./VideoStatusManager";
 import { Message, PubSub } from "@google-cloud/pubsub";
 import test from "node:test";
 //gcloud storage buckets notifications create gs://uploaded-video-bucket --topic=video-uploaded --event-types=OBJECT_FINALIZE
@@ -23,9 +23,18 @@ const storage = new Storage({ keyFilename: 'key.json' });
 const videoBucket = storage.bucket(UPLOADED_VIDEO_BUCKET_NAME);
 const transcodedVideoBucket = storage.bucket(TRANSCODE_VIDEO_BUCKET_NAME);
 
+function deleteFile(filePath: string) {
+    if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+    }
+}
+
 function uploadTranscodedVideoToBucket(transcodedVideoFileName: string, resolution: number) {
     return new Promise((resolve, reject) => {
         const transcodedVideoFile = transcodedVideoBucket.file(transcodedVideoFileName);
+        if (!transcodedVideoFile.exists) {
+            reject("File does not exist")
+        }
         const readableStream = fs.createReadStream(transcodedVideoFileName)
         readableStream.pipe(transcodedVideoFile.createWriteStream().on('finish', () => {
 
@@ -35,10 +44,11 @@ function uploadTranscodedVideoToBucket(transcodedVideoFileName: string, resoluti
                 }
             })
             // The file upload is complete
-            fs.unlinkSync(transcodedVideoFileName)
-            resolve("FILE UPLOAD TO BUCKET IS COMPLETED")
+            deleteFile(transcodedVideoFileName)
+            let fileURI = transcodedVideoBucket.file(transcodedVideoFileName).publicUrl()
+            resolve(fileURI)
         })).on("error", (err) => {
-            fs.unlinkSync(transcodedVideoFileName)
+            deleteFile(transcodedVideoFileName)
             reject(err.message)
         })
     })
@@ -85,10 +95,10 @@ async function process_video(fileName: string): Promise<Map<number, string>> {
         let promise: Promise<object> = new Promise(async (resolve, reject) => {
             try {
                 const transcodedVideoFileName = await transcodeVideo(fileName, resolution)
-                await uploadTranscodedVideoToBucket(transcodedVideoFileName, resolution)
+                const fileURI = await uploadTranscodedVideoToBucket(transcodedVideoFileName, resolution)
                 resolve({
                     resolution: resolution,
-                    fileName: fileName
+                    fileURI: fileURI
                 })
             } catch (err) {
                 console.log(err)
@@ -98,7 +108,7 @@ async function process_video(fileName: string): Promise<Map<number, string>> {
         transcodeAndUploadPromises.push(promise)
     }
 
-    let resolutionToFileId: Map<number, string> = new Map()
+    let resolutionToFileURI: Map<number, string> = new Map()
     return Promise.allSettled(transcodeAndUploadPromises).then((results) => {
         let isAllFulfilled = results.every(result => result.status == "fulfilled")
         if (isAllFulfilled) {
@@ -106,14 +116,14 @@ async function process_video(fileName: string): Promise<Map<number, string>> {
                 if (result.status == "fulfilled") {
                     let resultValue: any = result.value
                     let resolution: number = resultValue.resolution
-                    let fileName: string = resultValue.fileName
-                    resolutionToFileId.set(resolution, fileName)
+                    let fileURI: string = resultValue.fileURI
+                    resolutionToFileURI.set(resolution, fileURI)
                 }
             })
-            fs.unlinkSync(fileName)
-            return resolutionToFileId
+            deleteFile(fileName)
+            return resolutionToFileURI
         } else {
-            fs.unlinkSync(fileName)
+            deleteFile(fileName)
             console.log("ERROR OCCURED")
             throw new Error("Video process failed")
         }
@@ -142,7 +152,7 @@ app.post("/process-video", async (req, res) => {
 })
 
 
-const videoMetadataManager = new VideoMetadataManager()
+const videoMetadataManager = new VideoStatusManager()
 
 const topicName = 'video-uploaded';
 const subscriptionName = 'video-uploaded-sub';
@@ -152,35 +162,32 @@ const messageHandler = async (message: Message) => {
     // console.log(`Received message ${message.id}:`);
     // console.log(`\tData: ${message.data}`);
     // console.log(`\tAttributes: ${JSON.stringify(message.attributes)}`);
-    console.log("received message, ")
+
     let messageData = JSON.parse(message.data.toString('utf-8'));
     let fileName = messageData.name
+
+    console.log("received message ")
     try {
         if (!fileName) {
             console.log("File name not provided")
         }
 
-        let videoFile = videoBucket.file(fileName)
-        let metadata: any = videoFile.metadata
-        let userId: string = metadata.userId
-        let videoName: string = metadata.videoName
-        // if (!fileName || !userId || !videoName) {
-        //     message.ack()
-        //     return
-        // }
+        // let videoFile = videoBucket.file(fileName)
+        // let metadata: any = videoFile.metadata
+        // let userId: string = metadata.userId ? metadata.userId : ""
+        // let videoName: string = metadata.videoName ? metadata.videoName : ""
+        // let description: string = metadata.description ? metadata.description : ""
 
+
+        console.log("The filename is..." + fileName)
         let status = await videoMetadataManager.getStatus(fileName)
         if (status == VideoProcessingStatus.Processing || status == VideoProcessingStatus.Processed) {
+            console.log("Video is already " + status + "ignore the message")
             message.ack()
             return
         }
+        console.log("Start processing video, first create metadata document")
 
-        await videoMetadataManager.saveVideoMetadata(fileName, {
-            userId: "TEST",
-            videoName: "TesT",
-            status: VideoProcessingStatus.Processing,
-            timestamp: messageData.timeCreated
-        })
         console.log("BEGIN PROCESSING VIDEO")
         let resolutionToFileId: Map<number, string> = await process_video(fileName)
         console.log(resolutionToFileId)
@@ -191,7 +198,12 @@ const messageHandler = async (message: Message) => {
         console.log(err)
         console.log("Processing failed, set status to undefined")
         //if processing failed, set status to undefined, and wait for PubSub to send message again.
-        await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Undefined)
+        videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Undefined).then(() => {
+            console.log("Set status to undefined success")
+        }).catch((err: any) => {
+            console.log("Set status to undefined failed")
+            console.log(err.message)
+        })
     }
 };
 
