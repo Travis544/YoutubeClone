@@ -1,9 +1,23 @@
-function VideoViewer(props: any) {
-    return (<div>
-        <video controls width="250">
-            <source src="https://storage.cloud.google.com/transcoded-videos-bucket/360_23-52-44.mp4" type="video/mp4" />
-        </video>
+import { Display } from "@geist-ui/core"
+import { useState } from "react"
 
+interface VideoViewerProps {
+    resolutionToVideoURI: Map<number, string>
+    contentType: string
+}
+
+function VideoViewer(props: VideoViewerProps) {
+    console.log(props)
+    const resolutionToVideoURI = props.resolutionToVideoURI
+    const resolutions = Array.from(resolutionToVideoURI.keys())
+    const [resolution, setResolution] = useState(resolutions[0])
+
+    return (<div>
+        <Display shadow caption="">
+            <video controls >
+                <source src={resolutionToVideoURI.get(resolution)} type={props.contentType} />
+            </video>
+        </Display>
     </div>)
 }
 

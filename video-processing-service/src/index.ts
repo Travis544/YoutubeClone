@@ -32,9 +32,7 @@ function deleteFile(filePath: string) {
 function uploadTranscodedVideoToBucket(transcodedVideoFileName: string, resolution: number) {
     return new Promise((resolve, reject) => {
         const transcodedVideoFile = transcodedVideoBucket.file(transcodedVideoFileName);
-        if (!transcodedVideoFile.exists) {
-            reject("File does not exist")
-        }
+
         const readableStream = fs.createReadStream(transcodedVideoFileName)
         readableStream.pipe(transcodedVideoFile.createWriteStream().on('finish', () => {
 
@@ -75,20 +73,29 @@ function transcodeVideo(fileName: string, resolution: number): Promise<string> {
 
 
 async function writeBucketFileToDisk(fileName: string) {
+    let doesExist = await videoBucket.file(fileName).exists()
+
     return new Promise((resolve, reject) => {
-        videoBucket.file(fileName).createReadStream().pipe(
-            fs.createWriteStream(fileName))
-            .on('finish', () => {
-                resolve(fileName)
-            }).on("error", () => {
-                reject()
-            })
+        if (!(doesExist[0])) {
+            console.log("file does not exist")
+            reject()
+        } else {
+            videoBucket.file(fileName).createReadStream().pipe(
+                fs.createWriteStream(fileName))
+                .on('finish', () => {
+                    resolve(fileName)
+                }).on("error", () => {
+                    reject()
+                })
+        }
     })
 }
 
 async function process_video(fileName: string): Promise<Map<number, string>> {
     const videoQualities: Array<number> = [360]
     //read the video file.
+
+    console.log("write to disk")
     await writeBucketFileToDisk(fileName)
     const transcodeAndUploadPromises: Array<Promise<object>> = []
     for (let resolution of videoQualities) {
@@ -167,42 +174,43 @@ const messageHandler = async (message: Message) => {
     let fileName = messageData.name
 
     console.log("received message ")
+    console.log(fileName)
     try {
         if (!fileName) {
             console.log("File name not provided")
         }
 
-        // let videoFile = videoBucket.file(fileName)
-        // let metadata: any = videoFile.metadata
-        // let userId: string = metadata.userId ? metadata.userId : ""
-        // let videoName: string = metadata.videoName ? metadata.videoName : ""
-        // let description: string = metadata.description ? metadata.description : ""
-
-
         console.log("The filename is..." + fileName)
+
         let status = await videoMetadataManager.getStatus(fileName)
+        console.log("VIDEO STATUS" + status)
         if (status == VideoProcessingStatus.Processing || status == VideoProcessingStatus.Processed) {
             console.log("Video is already " + status + "ignore the message")
             message.ack()
             return
         }
+
         console.log("Start processing video, first create metadata document")
 
         console.log("BEGIN PROCESSING VIDEO")
+        await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Processing)
         let resolutionToFileId: Map<number, string> = await process_video(fileName)
-        console.log(resolutionToFileId)
+        // console.log(resolutionToFileId)
         await videoMetadataManager.saveTranscodedVideoMapping(fileName, resolutionToFileId)
         await videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Processed)
+        console.log("video processing suceeded")
         message.ack()
     } catch (err) {
         console.log(err)
         console.log("Processing failed, set status to undefined")
-        //if processing failed, set status to undefined, and wait for PubSub to send message again.
+        message.ack()
         videoMetadataManager.updateStatus(fileName, VideoProcessingStatus.Undefined).then(() => {
             console.log("Set status to undefined success")
+
         }).catch((err: any) => {
             console.log("Set status to undefined failed")
             console.log(err.message)
+
         })
     }
 };

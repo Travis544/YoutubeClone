@@ -71,8 +71,7 @@ function VideoUploadButton(props: any) {
                 // Read the content of the video file as ArrayBuffer
                 const fileContent = await videoFile.arrayBuffer();
                 const signedUrl = await getSignedUrl(requestUrl, requestBody)
-
-                //await uploadVideoToBucket(signedUrl, fileContent, contentType)
+                await uploadVideoToBucket(signedUrl, fileContent, contentType)
             } catch (error) {
                 console.error('Error reading or uploading the video:', error);
             }

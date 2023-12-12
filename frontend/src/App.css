@@ -32,7 +32,24 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
+
+
+#homeContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+#videoViewerContainer {
+  margin-top: 5%;
+}
+
+/* .videoThumbnail {
+  width: 200px;
+  height: 300px;
+  object-fit: cover;
+} */

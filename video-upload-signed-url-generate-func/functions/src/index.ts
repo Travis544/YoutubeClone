@@ -13,7 +13,7 @@ import { GetSignedUrlConfig } from '@google-cloud/storage';
 import { Storage } from '@google-cloud/storage';
 // import { Timestamp } from "firebase-admin/firestore";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { Timestamp, getFirestore } from "firebase-admin/firestore";
 
 initializeApp();
 const firestore = getFirestore()
@@ -21,7 +21,9 @@ export type VideoMetadata = {
     userId: string
     videoName: string,
     description: string,
-    // timestamp: Timestamp
+    timestamp: Timestamp,
+    contentType: string,
+    status: string
 };
 
 
@@ -49,7 +51,7 @@ async function generateV4UploadSignedUrl(fileName: string, contentType: string) 
     return url
 }
 
-async function saveVideoMetadata(fileName: string, videoMetadata: any) {
+async function saveVideoMetadata(fileName: string, videoMetadata: VideoMetadata) {
     await videoCollection.doc(fileName).set(videoMetadata, { merge: true })
 }
 
@@ -63,7 +65,7 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
     const userId = req.body.userId
     const videoName = req.body.videoName
     const description = req.body.description
-
+    const status = "Undefined"
     if (!fileName || !contentType || !userId || !videoName || !description) {
         logger.info("Incorrect information provided")
         return
@@ -77,7 +79,10 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
         userId: userId,
         videoName: videoName,
         description: description,
-        // timestamp: Timestamp.now()
+        timestamp: Timestamp.now(),
+        contentType: contentType,
+        status: status
+
     }).then(() => {
         console.log("FINISH Putting video metadata into firestore")
 

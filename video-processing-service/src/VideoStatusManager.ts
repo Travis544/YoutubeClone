@@ -1,6 +1,5 @@
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue, Filter, CollectionReference, Firestore } from 'firebase-admin/firestore';
-import { Database } from 'firebase-admin/lib/database/database';
 const serviceAccount = require("../firebaseKey.json")
 
 enum VideoProcessingStatus {
@@ -32,27 +31,35 @@ class VideoStatusManager {
     }
 
     async getStatus(videoId: string): Promise<VideoProcessingStatus> {
+        console.log("GETTING STATUS")
         const videoDocument = this.videoCollection.doc(videoId)
         let docSnapshot = await videoDocument.get()
         if (docSnapshot.exists) {
             const data = docSnapshot.data();
 
             if (data) {
+                console.log("DATA DOES EXIST")
+                console.log(data)
                 const status = data.status
-                return status
+                if (status) {
+                    return status
+                } else {
+                    return VideoProcessingStatus.Undefined
+                }
             } else {
                 return VideoProcessingStatus.Undefined
             }
         } else {
+            console.log("DATA DOES NOT EXIST")
             return VideoProcessingStatus.Undefined
         }
     }
 
     async updateStatus(videoId: string, status: VideoProcessingStatus): Promise<void> {
         const videoDocument = this.videoCollection.doc(videoId)
-        await videoDocument.update({
+        await videoDocument.set({
             status: status
-        })
+        }, { merge: true })
     }
 }
 
