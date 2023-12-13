@@ -38,6 +38,15 @@
   }
 }
 
+#videoGridContainer {
+  margin: auto;
+}
+
+.ow {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
 
 #homeContainer {
   display: flex;
@@ -46,6 +55,45 @@
 
 #videoViewerContainer {
   margin-top: 5%;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoInfoContainer {
+  display: flex;
+  flex-direction: row;
+  margin-top: 2%;
+
+}
+
+.avatar {
+  margin-right: 3%;
+}
+
+.videoTextInfoContainer {
+
+  width: 300px;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+.videoName {
+  font-weight: bold;
+
+  font-size: large;
+}
+
+.videoMetadata {}
+
+.textWrap {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* .videoThumbnail {

@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
 import VideoViewer from "../Components/VideoViewer";
-import { Video } from "../Types/type";
+import { Video } from "../Types/types";
 import { Breadcrumbs } from "@geist-ui/core";
 
 function useQuery() {
@@ -14,11 +14,15 @@ function WatchPage() {
     const location = useLocation();
     const data = location.state;
     const video: Video = data.video
-
+    console.log(video)
     return (
         <div>
             <div id="videoViewerContainer">
-                <VideoViewer resolutionToVideoURI={video.resolutionToVideoURI} contentType={video.contentType} />
+                {
+                    video.resolutionToVideoURI &&
+                    <VideoViewer resolutionToVideoURI={video.resolutionToVideoURI} contentType={video.contentType} />
+                }
+
             </div>
 
         </div>

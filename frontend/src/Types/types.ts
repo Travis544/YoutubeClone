@@ -8,5 +8,5 @@ export interface Video {
     status: string,
     timestamp: Timestamp,
     contentType: string,
-    resolutionToVideoURI: Map<number, string>
+    resolutionToVideoURI: Map<string, string> | null
 }

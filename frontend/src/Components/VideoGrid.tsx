@@ -1,6 +1,6 @@
 
-import { Video } from "../Types/type"
-import { Grid, Card, useTheme, Image, Text, } from '@geist-ui/core'
+import { Video } from "../Types/types"
+import { Grid, Card, useTheme, Image, Text, Avatar } from '@geist-ui/core'
 import { Link } from "react-router-dom";
 
 interface VideoGridProp {
@@ -12,7 +12,7 @@ function VideoGrid(props: VideoGridProp) {
 
     return (
         <div>
-            <Grid.Container gap={2} justify="center">
+            <Grid.Container gap={1} >
                 {
                     props.videos.map((video) => {
                         return <VideoDisplay video={video} />
@@ -28,18 +28,26 @@ function VideoGrid(props: VideoGridProp) {
 function VideoDisplay(props: any) {
     let video: Video = props.video
     return (
-        //?video=${video.videoId}
-        <Grid key={video.videoId} xs={6}>
-            <Link to={{
-                pathname: "/watch"
-            }} state={{ "video": video }}>
-
-                <Card shadow width="100%" >
-                    <Image src=" https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy5rp5QwIWSkMTD-Vg8GOccp5IqSM8lrUbKQ&usqp=CAU" />
-                    <Text h3 style={{ letterSpacing: '0.6px' }}>{video.videoName}</Text>
-                    <Text>{video.timestamp.toDate().toLocaleDateString()}</Text>
+        <Grid key={video.videoId}  >
+            <Link to={video.status === "Processed" ? "/watch" : "#"}
+                state={{ "video": video }}>
+                <Card shadow width="100%">
+                    <Image className="thumbnail" src=" https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy5rp5QwIWSkMTD-Vg8GOccp5IqSM8lrUbKQ&usqp=CAU" />
                 </Card>
             </Link>
+            <div className="videoInfoContainer" >
+                <div className="avatar">
+                    <Avatar src={""} />
+                </div>
+                <div className="videoTextInfoContainer">
+                    <div className="textWrap videoName">
+                        {video.videoName}
+                    </div>
+                    <div className="videoMetadata">
+                        <span>{video.timestamp.toDate().toLocaleDateString()}</span>
+                    </div>
+                </div>
+            </div>
         </Grid >
     )
 }

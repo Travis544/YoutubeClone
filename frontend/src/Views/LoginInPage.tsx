@@ -9,7 +9,7 @@ function LoginInPage(props: any) {
 
     useEffect(() => {
         if (service.isLoggedIn()) {
-            navigate("/home")
+            navigate("/")
         }
     })
 
