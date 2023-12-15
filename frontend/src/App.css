@@ -96,6 +96,13 @@
   overflow: hidden;
 }
 
+#videoUpload {
+  position: fixed;
+  right: 5%;
+  bottom: 5%;
+
+}
+
 /* .videoThumbnail {
   width: 200px;
   height: 300px;

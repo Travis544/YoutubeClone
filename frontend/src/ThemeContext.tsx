@@ -19,7 +19,7 @@ export function ThemeContextWrapper(props: any) {
     }
 
     function test() {
-        console.log(props.children)
+
         return props.children
     }
 

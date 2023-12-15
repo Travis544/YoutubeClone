@@ -14,7 +14,7 @@ function WatchPage() {
     const location = useLocation();
     const data = location.state;
     const video: Video = data.video
-    console.log(video)
+
     return (
         <div>
             <div id="videoViewerContainer">

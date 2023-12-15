@@ -7,12 +7,12 @@ import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 
 import Container from '@mui/material/Container';
-import { Avatar } from '@geist-ui/core'
+import { User, Text } from '@geist-ui/core'
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import { ServiceContext } from '../Service/Firebase';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Button as GButton } from '@geist-ui/core'
 import { LogIn, LogOut } from '@geist-ui/icons'
 import { Link } from "react-router-dom";
@@ -25,8 +25,10 @@ function Navbar() {
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
+    const { service, getCurrentUser } = useContext(ServiceContext)
+    const currentUser = getCurrentUser()
 
-    const { service } = useContext(ServiceContext)
+
     const isLoggedIn = service.isLoggedIn()
     const navigate = useNavigate();
 
@@ -49,7 +51,6 @@ function Navbar() {
         handleCloseUserMenu()
         service.logOut()
     }
-
 
     return (
         <AppBar position="static" sx={{ backgroundColor: '#303030' }}>
@@ -96,7 +97,12 @@ function Navbar() {
                         <Box sx={{ flexGrow: 0 }}>
                             <Tooltip title="Open settings">
                                 <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                                    <Avatar alt="Remy Sharp" src="" />
+
+                                    <User src={currentUser.photoURL} name={""} style={{ color: "white" }}>
+                                    </User>
+                                    <Text font="1rem" style={{ color: "white" }}>
+                                        {currentUser.displayName}
+                                    </Text>
                                 </IconButton>
                             </Tooltip>
                             <Menu
@@ -135,8 +141,6 @@ function Navbar() {
                             handleCloseNavMenu()
                             navigate("/login")
                         }} >Log In</GButton>
-
-
                     }
                 </Toolbar>
             </Container>

@@ -13,9 +13,9 @@ function HomePage(props: any) {
     return (
         <div id="homeContainer">
             <div id="videoGridContainer">
-                <VideoGrid videos={videos} />
+                <VideoGrid videos={videos} showStatus={false} />
             </div>
-            <VideoUploadButton />
+
         </div>
     )
 }

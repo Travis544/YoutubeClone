@@ -5,18 +5,20 @@ import {
     collection,
     doc,
     setDoc,
+    getDoc,
     Firestore,
     Timestamp,
     getFirestore,
     onSnapshot,
     query,
     where,
-    DocumentData
+    DocumentData,
+    QuerySnapshot
 } from "firebase/firestore";
 
 
-import { VIDEO_COLLECTION_NAME } from "../constants";
-import { Video } from "../Types/types"
+import { USER_COLLECTION_NAME, VIDEO_COLLECTION_NAME } from "../constants";
+import { Video, UserData } from "../Types/types"
 import { createContext, useEffect, useState } from "react";
 import { Auth, getAuth, signInWithPopup, GoogleAuthProvider, browserSessionPersistence, User, Unsubscribe } from "firebase/auth";
 
@@ -50,6 +52,24 @@ export class FirebaseService {
         return this.db
     }
 
+    async getUser(userId: string): Promise<UserData> {
+        const docRef = doc(this.db, USER_COLLECTION_NAME, userId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            let data = docSnap.data()
+
+            return {
+                userId: docSnap.id,
+                name: data.name,
+                photoUrl: data.photoUrl
+            }
+        } else {
+            throw new Error("User does not exist")
+        }
+
+    }
+
     async googleSignIn() {
         const provider = new GoogleAuthProvider();
         try {
@@ -81,8 +101,8 @@ export class FirebaseService {
 export function ServiceProvider(props: any) {
     const [currentUser, setCurrentUser] = useState<User | null>()
     const [loading, setLoading] = useState(true)
-    const [videos, setVideos] = useState<Array<Video>>([])
-    const [myVideos, setMyVideos] = useState<Array<Video>>([])
+    const [videos, setVideos] = useState<Map<string, Video>>(new Map())
+    const [myVideos, setMyVideos] = useState<Map<string, Video>>(new Map())
 
     const firebaseService = new FirebaseService()
 
@@ -107,6 +127,30 @@ export function ServiceProvider(props: any) {
         return video
     }
 
+    function handleVideoChange(querySnapshot: QuerySnapshot, videoIdToVideoMapState: Map<string, Video>,
+        setVideos: (videos: Map<string, Video>) => void,) {
+        // const videoIdToVideos: Map<string, Video> = new Map<string, Video>();
+        querySnapshot.docChanges().forEach((change) => {
+            let video: Video = parseVideoDocumentToVideo(change.doc)
+
+            if (change.type === "added") {
+                // videoIdToVideos.set(video.videoId, video)
+                setVideos(new Map(videoIdToVideoMapState.set(video.videoId, video)))
+            }
+            if (change.type === "modified") {
+                setVideos(new Map(videoIdToVideoMapState.set(video.videoId, video)));
+            }
+
+            //TODO implement this
+            if (change.type === "removed") {
+                //setMyVideos(new Map(videos.set(video.videoId, video)));
+            }
+
+
+        })
+    }
+
+
     useEffect(() => {
         let myVideoSnapshotUnsubscribe: Unsubscribe | null = null
         const authUnsubscribe = firebaseService.getAuth().onAuthStateChanged(user => {
@@ -119,34 +163,17 @@ export function ServiceProvider(props: any) {
                 }
 
             } else {
-                const videoQuery = query(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), where("userId", "==", user?.uid));
-                myVideoSnapshotUnsubscribe = onSnapshot(videoQuery,
-                    (querySnapshot) => {
-                        let myVideos = []
-                        const documents = querySnapshot.docs
-                        for (const doc of documents) {
-                            const video = parseVideoDocumentToVideo(doc)
-                            myVideos.push(video)
-                        }
-                        console.log("USER IS LOGGED IN, my videos:")
-                        console.log(myVideos)
-                        setMyVideos(myVideos)
-                    })
+                const myVideoQuery = query(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), where("userId", "==", user?.uid));
+                myVideoSnapshotUnsubscribe = onSnapshot(myVideoQuery, (querySnapshot) => {
+                    handleVideoChange(querySnapshot, myVideos, (videoIdToVideos) => { setMyVideos(videoIdToVideos) })
+                });
             }
 
         })
 
-        const snapshotUnsubscribe = onSnapshot(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), (querySnapshot) => {
-            const documents = querySnapshot.docs
-            const videos: Array<Video> = []
-            console.log("Received update from video collection listener")
-            for (const doc of documents) {
-                const video = parseVideoDocumentToVideo(doc)
-                if (video.status === "Processed") {
-                    videos.push(video)
-                }
-            }
-            setVideos(videos)
+        const videoQuery = query(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), where("status", "==", "Processed"))
+        const snapshotUnsubscribe = onSnapshot(videoQuery, (querySnapshot) => {
+            handleVideoChange(querySnapshot, videos, (videoIdToVideos) => { setVideos(videoIdToVideos) })
         });
 
         return () => {
@@ -159,15 +186,22 @@ export function ServiceProvider(props: any) {
         };
     }, [])
 
-    function getUser() {
+    function getCurrentUser() {
         return firebaseService.getAuth().currentUser
     }
+
+
+    async function getUser(userId: string) {
+        return await firebaseService.getUser(userId)
+    }
+
 
     const value = {
         currentUser: currentUser,
         service: firebaseService,
         videos: videos,
         myVideos: myVideos,
+        getCurrentUser: getCurrentUser,
         getUser: getUser
     }
 
