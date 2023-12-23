@@ -66,7 +66,7 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
     const videoName = req.body.videoName
     const description = req.body.description
     const status = "Uploading"
-    if (!fileName || !contentType || !userId || !videoName || !description) {
+    if (!fileName || !contentType || !userId || !videoName) {
         logger.info("Incorrect information provided")
         return
     }

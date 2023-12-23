@@ -2,14 +2,12 @@
 import express from "express"
 import ffmpeg from "fluent-ffmpeg"
 // Imports the Google Cloud client library
-import { Storage, FileMetadata, File } from '@google-cloud/storage';
+import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
-import stream from 'stream';
-import { spawn } from 'child_process';
 import TopicSubscriber from "./TopicSubscriber";
 import { VideoStatusManager, VideoProcessingStatus } from "./VideoStatusManager";
 import { Message, PubSub } from "@google-cloud/pubsub";
-import test from "node:test";
+
 //gcloud storage buckets notifications create gs://uploaded-video-bucket --topic=video-uploaded --event-types=OBJECT_FINALIZE
 
 const UPLOADED_VIDEO_BUCKET_NAME = "uploaded-video-bucket"
@@ -56,15 +54,18 @@ function uploadTranscodedVideoToBucket(transcodedVideoFileName: string, resoluti
 function transcodeVideo(fileName: string, resolution: number): Promise<string> {
     return new Promise((resolve, reject) => {
         const transcodedFileName = `${resolution}_${fileName}`
+        console.log("Begin transcoding video...")
+        console.log(resolution)
         ffmpeg(fileName)
             .outputOption("-vf", `scale=-1:${resolution}`)
-            .on('progress', function (progress) {
-                console.log('Processing: ' + progress.percent + '% done');
-            })
+            // .on('progress', function (progress) {
+            //     console.log('Processing: ' + progress.percent + '% done');
+            // })
             .on("end", () => {
                 resolve(transcodedFileName)
+                console.log("Transcoding video succeeded")
             }).on("error", (err) => {
-                console.log("GOT ERROR")
+                console.log("Error while transcoding video")
                 console.log(err)
                 reject(err)
             }).save(transcodedFileName)
@@ -216,54 +217,7 @@ const messageHandler = async (message: Message) => {
 };
 
 videoUploadSubscriber.subscribeTo(topicName, subscriptionName, messageHandler)
-
-// const pubsub = new PubSub({ keyFilename: 'key.json' });
-// const topic = pubsub.topic("video-uploaded")
-// const testData = {
-//     fileName: ""
-// }
-// topic.publishMessage({ data: Buffer.from(JSON.stringify(testData)) });
-
-
 const port = process.env.PORT || 3000
 app.listen(port, () => {
     console.log(`Video processing service listening at localhost${port}`)
 })
-
-
-// function transcodeVideoPipe(videoFile: File, resolution: Resolution): Promise<string> {
-//     return new Promise((resolve, reject) => {
-//         const TRANSCODED_VIDEO_FILE_NAME = `${resolution.height}_${videoFile.name}`
-
-//         const ffmpegProcess = spawn('ffmpeg', [
-//             '-i', 'pipe:0', // Input from stdin (pipe:0)
-//             '-vf', `scale=-1:${resolution.height}`,
-//             TRANSCODED_VIDEO_FILE_NAME
-//         ]);
-
-//         ffmpegProcess.on('error', (error: any) => {
-//             console.error('FFmpeg process error:', error.message);
-//             reject(`Error while processing video ${error.message}`)
-//         });
-
-//         ffmpegProcess.stderr.on('data', (data: any) => {
-//             console.error(`FFmpeg stderr: ${data.toString()}`);
-//         });
-
-//         ffmpegProcess.on('close', (code: number) => {
-//             if (code === 0) {
-//                 console.log("TRANSCODE SUCCESS")
-//                 resolve(TRANSCODED_VIDEO_FILE_NAME)
-//             } else {
-//                 console.error('FFmpeg process exited with code', code);
-//                 fs.unlinkSync(TRANSCODED_VIDEO_FILE_NAME)
-//                 reject(`Error while processing video`)
-//             }
-//         });
-
-//         //pipe file data from the cloud to ffmpegProcess for video transcoding
-//         videoFile.createReadStream().pipe(
-//             ffmpegProcess.stdin
-//         )
-//     })
-// }

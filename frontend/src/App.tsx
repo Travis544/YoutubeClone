@@ -15,6 +15,7 @@ import Navbar from './Components/Navbar';
 function App() {
   // const context = useContext(ThemeContext)
 
+
   return (
     <div className="App">
 
@@ -24,15 +25,8 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/login" element={<LoginInPage />} />
-            {/* <Route path='/home' element={<PrivateRoute />}> */}
             <Route path="/" element={<HomePage />} />
-            {/* </Route> */}
-
-            <Route path='/watch' element={<PrivateRoute />}>
-              <Route path="/watch" element={<WatchPage />} />
-            </Route>
-
-
+            <Route path="/watch" element={<WatchPage />} />
             <Route path='/channel' element={<PrivateRoute />}>
               <Route path="/channel" element={<ChannelPage />} />
             </Route>

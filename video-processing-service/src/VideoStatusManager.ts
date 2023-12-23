@@ -1,5 +1,5 @@
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
-import { getFirestore, Timestamp, FieldValue, Filter, CollectionReference, Firestore } from 'firebase-admin/firestore';
+import { getFirestore, CollectionReference, Firestore } from 'firebase-admin/firestore';
 const serviceAccount = require("../firebaseKey.json")
 
 enum VideoProcessingStatus {
