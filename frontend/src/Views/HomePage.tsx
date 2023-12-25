@@ -12,9 +12,8 @@ function HomePage(props: any) {
     resolutionToVideoURI.set(360, "https://storage.googleapis.com/transcoded-videos-bucket/360_WIN_20231127_00_43_51_Prob00540b7-725e-42c0-872c-de84129dca23.mp4")
     return (
         <div id="homeContainer">
-            <div id="videoGridContainer">
-                <VideoGrid videos={videos} showStatus={false} />
-            </div>
+
+            <VideoGrid videos={videos} showStatus={false} />
 
         </div>
     )

@@ -13,13 +13,13 @@ function VideoViewer(props: VideoViewerProps) {
     const resolutions = Array.from(resolutionToVideoURI.keys())
     const [resolution, setResolution] = useState(resolutions[0])
 
-    return (<div>
-        <Display shadow caption="">
-            <video controls >
-                <source src={resolutionToVideoURI.get(resolution)} type={props.contentType} />
-            </video>
-        </Display>
-    </div>)
+    return (
+
+        <video controls id="videoViewer">
+            <source src={resolutionToVideoURI.get(resolution)} type={props.contentType} />
+        </video>
+
+    )
 }
 
 export default VideoViewer

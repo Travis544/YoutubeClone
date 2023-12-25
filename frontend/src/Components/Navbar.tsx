@@ -1,34 +1,26 @@
-import * as React from 'react';
+
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
 
 import Container from '@mui/material/Container';
-import { User, Text } from '@geist-ui/core'
-import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
-import MenuItem from '@mui/material/MenuItem';
+import { User, Text, useTheme, Popover, Link as GeistLink } from '@geist-ui/core'
 import { ServiceContext } from '../Service/Firebase';
-import { useContext, useEffect } from 'react';
+import { useContext, useState } from 'react';
 import { Button as GButton } from '@geist-ui/core'
 import { LogIn, LogOut } from '@geist-ui/icons'
-import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-
-const pages = [];
-const settings = ['Channel', 'Logout'];
+import { Link } from "react-router-dom";
 
 function Navbar() {
-    const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
-    const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
-
+    const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
+    const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const { service, getCurrentUser } = useContext(ServiceContext)
+    const theme = useTheme()
+
     const currentUser = getCurrentUser()
-
-
     const isLoggedIn = service.isLoggedIn()
     const navigate = useNavigate();
 
@@ -51,7 +43,11 @@ function Navbar() {
         handleCloseUserMenu()
         service.logOut()
     }
+    const content = () => (
+        <div style={{ padding: '0 10px' }}>
 
+        </div>
+    )
     return (
         <AppBar position="static" sx={{ backgroundColor: '#303030' }}>
             <Container maxWidth="xl">
@@ -61,7 +57,6 @@ function Navbar() {
                         variant="h6"
                         noWrap
                         component="a"
-                        href="/"
                         sx={{
                             mr: 2,
                             display: { xs: 'none', md: 'flex' },
@@ -72,40 +67,20 @@ function Navbar() {
                             textDecoration: 'none',
                         }}
                     >
-                        VIBES STREAMIN'
+                        <Link to="/" style={{ color: theme.palette.foreground }}>VIBES STREAMIN'</Link>
                     </Typography>
 
                     <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-                        {/* {pages.map((page) => (
-                            <Link to={{
-                                pathname: `/${page}`
-                            }}>
 
-                                <Button
-                                    key={page}
-                                    onClick={handleCloseNavMenu}
-                                    sx={{ my: 2, color: 'white', display: 'block' }}
-                                >
-                                    {page}
-                                </Button>
-                            </Link>
-                        ))} */}
                     </Box>
 
                     {
                         isLoggedIn &&
-                        <Box sx={{ flexGrow: 0 }}>
-                            <Tooltip title="Open settings">
-                                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                        <Box sx={{}} >
+                            {/* <Tooltip title="Open settings">
 
-                                    <User src={currentUser.photoURL} name={""} style={{ color: "white" }}>
-                                    </User>
-                                    <Text font="1rem" style={{ color: "white" }}>
-                                        {currentUser.displayName}
-                                    </Text>
-                                </IconButton>
-                            </Tooltip>
-                            <Menu
+                            </Tooltip> */}
+                            {/* <Menu
                                 sx={{ mt: '45px' }}
                                 id="menu-appbar"
                                 anchorEl={anchorElUser}
@@ -125,26 +100,47 @@ function Navbar() {
                                     handleCloseNavMenu()
                                     navigate("/channel")
                                 }}>
-                                    <Typography textAlign="center">My Channel</Typography>
+                                    <Typography textAlign="center" style={{ color: theme.palette.foreground }}>My Channel</Typography>
                                 </MenuItem>
 
                                 <MenuItem onClick={handleLogOut}>
-                                    <Typography textAlign="center">Logout</Typography>
+                                    <Typography textAlign="center" style={{ color: theme.palette.foreground }} >Logout</Typography>
                                 </MenuItem>
-                            </Menu>
+                            </Menu> */}
+                            <Popover content={<>
+
+                                <Popover.Item>
+                                    <Link to="/channel" style={{ color: theme.palette.foreground }}>My Channel</Link>
+                                </Popover.Item>
+                                <Popover.Item>
+                                    <Link to="/" style={{ color: theme.palette.foreground }}>Home</Link>
+                                </Popover.Item>
+                                <Popover.Item line />
+                                <Popover.Item>
+                                    <GButton icon={<LogOut />} style={{ color: theme.palette.foreground }} onClick={handleLogOut}>Logout</GButton>
+                                </Popover.Item>
+                            </> as any} >
+                                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                                    <User src={currentUser.photoURL} name={""} style={{ color: "white" }}>
+                                    </User>
+                                    <Text font="1rem" style={{ color: "white" }}>
+                                        {currentUser.displayName}
+                                    </Text>
+                                </IconButton>
+                            </Popover>
                         </Box>
                     }
 
                     {
                         !isLoggedIn &&
-                        <GButton icon={<LogIn />} auto onClick={() => {
+                        <GButton icon={<LogIn />} style={{ color: theme.palette.foreground }} auto onClick={() => {
                             handleCloseNavMenu()
                             navigate("/login")
                         }} >Log In</GButton>
                     }
                 </Toolbar>
             </Container>
-        </AppBar>
+        </AppBar >
     );
 }
 export default Navbar;

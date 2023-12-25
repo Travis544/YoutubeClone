@@ -3,6 +3,7 @@ import { CREATE_UPLOAD_SIGNED_URL_FUNCTION_ENDPOINT } from '../constants';
 import { sign } from 'crypto';
 import { useContext } from 'react';
 import { ServiceContext } from '../Service/Firebase';
+import { MAX_VIDEO_SIZE_MB } from '../constants';
 
 interface VideoUploadButtonProps {
     uploadCallback: (file: any) => void

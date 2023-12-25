@@ -125,7 +125,10 @@ function ChannelPage(props: any) {
             </>
 
             <h1> My Videos </h1>
-            <VideoGrid videos={myVideos} showStatus={true} />
+            <div id="videoGridContainer">
+                <VideoGrid videos={myVideos} showStatus={true} />
+            </div>
+
             <Button id="videoUpload" scale={3 / 2} onClick={openModal} style={{ backgroundColor: palette.warningDark, color: "white" }} effect shadow ghost auto px={0.6} >
                 Upload Video
             </Button>

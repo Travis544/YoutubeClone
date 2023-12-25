@@ -19,7 +19,7 @@ function App() {
   return (
     <div className="App">
 
-      <GeistProvider>
+      <GeistProvider themeType="dark">
         <CssBaseline />
         <ServiceProvider>
           <Navbar />

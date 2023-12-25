@@ -39,6 +39,7 @@
 }
 
 #videoGridContainer {
+  width: 80%;
   margin: auto;
 }
 
@@ -51,10 +52,18 @@
 #homeContainer {
   display: flex;
   flex-direction: column;
+  align-items: center;
+}
+
+#videoViewer {
+  width: 100%;
+  height: 100%;
 }
 
 #videoViewerContainer {
-  margin-top: 5%;
+  width: 100vh;
+  height: 70vh;
+  margin: auto;
 }
 
 .thumbnail {
@@ -67,6 +76,7 @@
   display: flex;
   flex-direction: row;
   margin-top: 2%;
+  justify-content: flex-start;
 
 }
 
@@ -75,19 +85,40 @@
 }
 
 .videoTextInfoContainer {
-
-  width: 300px;
+  width: auto;
   text-align: left;
   word-wrap: break-word;
 }
 
-.videoName {
-  font-weight: bold;
+.videoStatusContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
 
+.statusBadge {
+  flex-grow: 2;
+}
+
+.statusLoadingbar {
+  flex-grow: 1;
+}
+
+.textAlignLeft {
+  text-align: left;
+}
+
+.largeBoldText {
+  font-weight: bold;
   font-size: large;
 }
 
-.videoMetadata {}
+
+#videoDetailCollapse {
+
+  margin-bottom: "5%";
+  background-color: dimgray
+}
 
 .textWrap {
   display: -webkit-box;
@@ -100,11 +131,20 @@
   position: fixed;
   right: 5%;
   bottom: 5%;
-
 }
 
-.videoThumbnail {
-  max-width: 200px;
-  max-height: 300px;
 
+.videoThumbnail {
+  height: 100%;
+  width: 100%;
+}
+
+.videoGridItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.videoGridItemCard {
+  width: 400px;
+  padding: 0%;
 }

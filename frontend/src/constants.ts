@@ -5,3 +5,5 @@ export const CREATE_UPLOAD_SIGNED_URL_FUNCTION_ENDPOINT =
 
 export const VIDEO_COLLECTION_NAME = "Video"
 export const USER_COLLECTION_NAME = "User"
+//Max video size is 2GB
+export const MAX_VIDEO_SIZE_MB = 2000
