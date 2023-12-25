@@ -103,8 +103,8 @@
 
 }
 
-/* .videoThumbnail {
-  width: 200px;
-  height: 300px;
-  object-fit: cover;
-} */
+.videoThumbnail {
+  max-width: 200px;
+  max-height: 300px;
+
+}

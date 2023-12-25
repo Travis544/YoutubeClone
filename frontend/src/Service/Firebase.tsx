@@ -120,6 +120,7 @@ export function ServiceProvider(props: any) {
             description: data.description,
             status: data.status,
             timestamp: data.timestamp,
+            thumbnailURI: data.thumbnailURI ? data.thumbnailURI : null,
             contentType: data.contentType,
             resolutionToVideoURI: resolutionToVideoURI
         }

@@ -20,7 +20,7 @@ function VideoUploadButton(props: VideoUploadButtonProps) {
 
     return (
         <div>
-            <input type="file" accept="video/mp4,video/x-m4v,video/*" onChange={handleUploadVideo} id="myFile" name="filename">
+            <input type="file" accept="video/mp4,video/webm,video/ogg" onChange={handleUploadVideo} id="myFile" name="filename">
             </input>
         </div>
     )

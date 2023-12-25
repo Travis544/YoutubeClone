@@ -8,6 +8,7 @@ export interface Video {
     status: string,
     timestamp: Timestamp,
     contentType: string,
+    thumbnailURI: string | null,
     resolutionToVideoURI: Map<string, string> | null
 }
 

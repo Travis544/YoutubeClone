@@ -86,7 +86,7 @@ function VideoDisplay(props: VideoDisplayProp) {
             <Link to={video.status === "Processed" ? "/watch" : "#"}
                 state={{ "video": video }}>
                 <Card shadow width="100%">
-                    <Image className="thumbnail" src=" https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy5rp5QwIWSkMTD-Vg8GOccp5IqSM8lrUbKQ&usqp=CAU" />
+                    <Image className="thumbnail" src={video.thumbnailURI ? video.thumbnailURI : ""} />
                     {isShowStatus && showStatus(video.status)}
                 </Card>
             </Link>
