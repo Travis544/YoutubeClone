@@ -7,6 +7,8 @@ import { VideoStatus } from "../Types/types"
 import { useContext, useEffect, useMemo, useState } from "react";
 import { ServiceContext } from "../Service/Firebase";
 import VideoStatusIndicator from "./VideoStatusIndicator";
+import ThumbnailPlaceHolder from "../assets/ThumbnailPlaceholder.png"
+
 interface VideoGridProp {
     videos: Array<Video>
     showStatus: boolean
@@ -64,13 +66,16 @@ function VideoDisplay(props: VideoDisplayProp) {
 
 
     return (
-        <Grid key={video.videoId} className="videoGridItem" xs={8}>
+        <Grid key={video.videoId} className="videoGridItem" xs={23} md={8}>
 
             <Display shadow className="videoGridItemCard" caption={<>
             </>}>
+
                 <Link to={video.status === "Processed" ? "/watch" : "#"}
                     state={{ "video": video }}>
-                    <Image className="videoThumbnail" src={video.thumbnailURI ? video.thumbnailURI : "https://it.eku.edu/sites/it.eku.edu/files/bbissue1.png"} />
+                    <div className="thumbnailContainer">
+                        <img style={{}} className="videoThumbnail" src={video.thumbnailURI ? video.thumbnailURI : ThumbnailPlaceHolder} />
+                    </div>
 
                 </Link>
                 <div className="videoInfoContainer" >

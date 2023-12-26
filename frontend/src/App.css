@@ -45,14 +45,15 @@
 
 .ow {
   overflow-wrap: break-word;
+  height: 70%;
   word-wrap: break-word;
   hyphens: auto;
 }
 
 #homeContainer {
-  display: flex;
+  /* display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: center; */
 }
 
 #videoViewer {
@@ -61,7 +62,8 @@
 }
 
 #videoViewerContainer {
-  width: 100vh;
+  width: 70%;
+
   height: 70vh;
   margin: auto;
 }
@@ -134,17 +136,39 @@
 }
 
 
-.videoThumbnail {
-  height: 100%;
-  width: 100%;
-}
-
 .videoGridItem {
   display: flex;
   flex-direction: column;
+
 }
 
 .videoGridItemCard {
   width: 400px;
   padding: 0%;
+
 }
+
+.thumbnailContainer {
+  max-width: 100%;
+}
+
+.img {
+  max-width: 100%;
+  max-height: auto;
+  /*Scale down will take the necessary specified space that is 100px x 100px without stretching the image*/
+  object-fit: scale-down;
+
+}
+
+/* .videoThumbnail {
+  max-width: 500px;
+} */
+
+/* 
+.videoThumbnail {
+  max-width: 500px;
+} */
+
+/* @media only screen and (max-width: 890px) {
+  
+} */

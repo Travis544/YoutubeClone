@@ -7,7 +7,6 @@ interface VideoViewerProps {
 }
 
 function VideoViewer(props: VideoViewerProps) {
-    console.log(props)
     const resolutionToVideoURI = props.resolutionToVideoURI
 
     const resolutions = Array.from(resolutionToVideoURI.keys())
