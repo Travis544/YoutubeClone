@@ -145,8 +145,6 @@ app.post("/", async (req, res) => {
 
 app.post("/process-video", async (req, res) => {
     const fileName: string = req.body.fileName
-    //const outputFilePath: string = req.body.outputFilePath
-
     if (!fileName) {
         res.status(400).send("Bad request.")
     }
@@ -161,7 +159,6 @@ app.post("/process-video", async (req, res) => {
 
 
 const videoMetadataManager = new VideoStatusManager()
-
 const topicName = 'video-uploaded';
 const subscriptionName = 'video-uploaded-sub';
 let videoUploadSubscriber = new TopicSubscriber()

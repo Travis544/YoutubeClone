@@ -74,7 +74,7 @@ function VideoDisplay(props: VideoDisplayProp) {
                 <Link to={video.status === "Processed" ? "/watch" : "#"}
                     state={{ "video": video }}>
                     <div className="thumbnailContainer">
-                        <img style={{}} className="videoThumbnail" src={video.thumbnailURI ? video.thumbnailURI : ThumbnailPlaceHolder} />
+                        <Image className="videoThumbnail" src={video.thumbnailURI ? video.thumbnailURI : ThumbnailPlaceHolder} />
                     </div>
 
                 </Link>
