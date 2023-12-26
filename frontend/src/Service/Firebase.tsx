@@ -19,7 +19,7 @@ import {
 
 import { USER_COLLECTION_NAME, VIDEO_COLLECTION_NAME } from "../constants";
 import { Video, UserData } from "../Types/types"
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { Auth, getAuth, signInWithPopup, GoogleAuthProvider, browserSessionPersistence, User, Unsubscribe } from "firebase/auth";
 
 /**contains API key, project id information for this particular web app. This configuration can be downloaded
@@ -28,7 +28,26 @@ in "Your apps" in the project settings in Firebase
 import firebaseConfig from "./key.json"
 export const ServiceContext = createContext(null as any | null)
 
+function parseVideoDocumentToVideo(docId: string, data: DocumentData): Video {
+    let resolutionToVideoURI: Map<string, string> | null = null
+    if (data.resolutionToVideoId) {
+        resolutionToVideoURI = new Map(Object.entries(data.resolutionToVideoId))
+    }
 
+    let video: Video = {
+        videoId: docId,
+        videoName: data.videoName,
+        userId: data.userId,
+        description: data.description,
+        status: data.status,
+        timestamp: data.timestamp,
+        thumbnailURI: data.thumbnailURI ? data.thumbnailURI : null,
+        contentType: data.contentType,
+        resolutionToVideoURI: resolutionToVideoURI
+    }
+
+    return video
+}
 
 export class FirebaseService {
     app: FirebaseApp
@@ -52,22 +71,30 @@ export class FirebaseService {
         return this.db
     }
 
-    async getUser(userId: string): Promise<UserData> {
-        const docRef = doc(this.db, USER_COLLECTION_NAME, userId);
+    async getDocument(id: string, collectionName: string) {
+        const docRef = doc(this.db, collectionName, id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
             let data = docSnap.data()
-
-            return {
-                userId: docSnap.id,
-                name: data.name,
-                photoUrl: data.photoUrl
-            }
+            return data
         } else {
-            throw new Error("User does not exist")
+            throw new Error("Document not exist")
         }
+    }
 
+    async getUser(userId: string): Promise<UserData> {
+        const data = await this.getDocument(userId, USER_COLLECTION_NAME)
+        return {
+            userId: userId,
+            name: data.name,
+            photoUrl: data.photoUrl
+        }
+    }
+
+    async getVideo(videoId: string): Promise<Video> {
+        const data = await this.getDocument(videoId, VIDEO_COLLECTION_NAME)
+        return parseVideoDocumentToVideo(videoId, data)
     }
 
     async googleSignIn() {
@@ -96,6 +123,7 @@ export class FirebaseService {
         this.auth.signOut()
     }
 
+
 }
 
 export function ServiceProvider(props: any) {
@@ -104,35 +132,13 @@ export function ServiceProvider(props: any) {
     const [videos, setVideos] = useState<Map<string, Video>>(new Map())
     const [myVideos, setMyVideos] = useState<Map<string, Video>>(new Map())
 
-    const firebaseService = new FirebaseService()
-
-    function parseVideoDocumentToVideo(doc: DocumentData): Video {
-        let data = doc.data()
-        let resolutionToVideoURI: Map<string, string> | null = null
-        if (data.resolutionToVideoId) {
-            resolutionToVideoURI = new Map(Object.entries(data.resolutionToVideoId))
-        }
-
-        let video: Video = {
-            videoId: doc.id,
-            videoName: data.videoName,
-            userId: data.userId,
-            description: data.description,
-            status: data.status,
-            timestamp: data.timestamp,
-            thumbnailURI: data.thumbnailURI ? data.thumbnailURI : null,
-            contentType: data.contentType,
-            resolutionToVideoURI: resolutionToVideoURI
-        }
-
-        return video
-    }
+    const firebaseService = useRef(new FirebaseService())
 
     function handleVideoChange(querySnapshot: QuerySnapshot, videoIdToVideoMapState: Map<string, Video>,
         setVideos: (videos: Map<string, Video>) => void,) {
         // const videoIdToVideos: Map<string, Video> = new Map<string, Video>();
         querySnapshot.docChanges().forEach((change) => {
-            let video: Video = parseVideoDocumentToVideo(change.doc)
+            let video: Video = parseVideoDocumentToVideo(change.doc.id, change.doc.data())
 
             if (change.type === "added") {
                 // videoIdToVideos.set(video.videoId, video)
@@ -151,10 +157,9 @@ export function ServiceProvider(props: any) {
         })
     }
 
-
     useEffect(() => {
         let myVideoSnapshotUnsubscribe: Unsubscribe | null = null
-        const authUnsubscribe = firebaseService.getAuth().onAuthStateChanged(user => {
+        const authUnsubscribe = firebaseService.current.getAuth().onAuthStateChanged(user => {
             setCurrentUser(user)
             setLoading(false)
             if (!user) {
@@ -164,7 +169,7 @@ export function ServiceProvider(props: any) {
                 }
 
             } else {
-                const myVideoQuery = query(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), where("userId", "==", user?.uid));
+                const myVideoQuery = query(collection(firebaseService.current.getDB(), VIDEO_COLLECTION_NAME), where("userId", "==", user?.uid));
                 myVideoSnapshotUnsubscribe = onSnapshot(myVideoQuery, (querySnapshot) => {
                     handleVideoChange(querySnapshot, myVideos, (videoIdToVideos) => { setMyVideos(videoIdToVideos) })
                 });
@@ -172,7 +177,7 @@ export function ServiceProvider(props: any) {
 
         })
 
-        const videoQuery = query(collection(firebaseService.getDB(), VIDEO_COLLECTION_NAME), where("status", "==", "Processed"))
+        const videoQuery = query(collection(firebaseService.current.getDB(), VIDEO_COLLECTION_NAME), where("status", "==", "Processed"))
         const snapshotUnsubscribe = onSnapshot(videoQuery, (querySnapshot) => {
             handleVideoChange(querySnapshot, videos, (videoIdToVideos) => { setVideos(videoIdToVideos) })
         });
@@ -188,22 +193,29 @@ export function ServiceProvider(props: any) {
     }, [])
 
     function getCurrentUser() {
-        return firebaseService.getAuth().currentUser
+        return firebaseService.current.getAuth().currentUser
     }
-
 
     async function getUser(userId: string) {
-        return await firebaseService.getUser(userId)
+        return await firebaseService.current.getUser(userId)
     }
 
+    async function getVideo(videoId: string): Promise<Video> {
+        if (videos.has(videoId)) {
+            return videos.get(videoId)!
+        } else {
+            return await firebaseService.current.getVideo(videoId);
+        }
+    }
 
     const value = {
         currentUser: currentUser,
-        service: firebaseService,
+        service: firebaseService.current,
         videos: videos,
         myVideos: myVideos,
         getCurrentUser: getCurrentUser,
-        getUser: getUser
+        getUser: getUser,
+        getVideo: getVideo
     }
 
     return (

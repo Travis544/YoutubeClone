@@ -62,17 +62,15 @@ function VideoDisplay(props: VideoDisplayProp) {
         getUserData()
     }, [getUserData])
 
-
-
-
     return (
         <Grid key={video.videoId} className="videoGridItem" xs={23} md={8}>
 
             <Display shadow className="videoGridItemCard" caption={<>
             </>}>
 
-                <Link to={video.status === "Processed" ? "/watch" : "#"}
-                    state={{ "video": video }}>
+                <Link to={video.status === "Processed" ? `/watch?videoId=${video.videoId}` : "#"}
+                >
+                    {/*   state={{ "video": video }} */}
                     <div className="thumbnailContainer">
                         <Image className="videoThumbnail" src={video.thumbnailURI ? video.thumbnailURI : ThumbnailPlaceHolder} />
                     </div>
