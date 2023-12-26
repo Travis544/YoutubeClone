@@ -15,7 +15,7 @@ function VideoViewer(props: VideoViewerProps) {
     return (
 
         <video controls id="videoViewer">
-            <source src={resolutionToVideoURI.get(resolution)} type={props.contentType} />
+            <source src={resolutionToVideoURI.get(resolution)} />
         </video>
 
     )
