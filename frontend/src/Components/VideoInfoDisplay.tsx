@@ -13,14 +13,6 @@ function VideoInfoDisplay(props: VideoInfoDisplayProps) {
 
     return (
         <div>
-            {/* <h3 className="textAlignLeft">
-                {props.videoName}
-            </h3> */}
-
-
-            {/* <Collapse shadow title="test" id="videoDetailCollapse"
-                subtitle="Description">
-            </Collapse> */}
             <div id="videoDetailCollapse">
                 <Collapse id="videoDetailCollapse" shadow title={props.videoName}
                     subtitle={<>

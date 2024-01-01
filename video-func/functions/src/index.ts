@@ -26,10 +26,15 @@ export type VideoMetadata = {
 };
 
 
+const FRONTEND_URL = "https://our-compound-407022.web.app/"
+
 // Creates a client, loading the service account key.
 const storage = new Storage({ keyFilename: 'key.json' });
-const bucketName = 'uploaded-video-bucket';
+const UPLOADED_VIDEO_BUCKET_NAME = 'uploaded-video-bucket';
+const TRANSCODED_VIDEO_BUCKET_NAME = "transcoded-videos-bucket"
+
 const videoCollection = firestore.collection("Video")
+
 async function generateV4UploadSignedUrl(fileName: string, contentType: string) {
     // These options will allow temporary uploading of the file with outgoing
     const options: GetSignedUrlConfig = {
@@ -41,7 +46,7 @@ async function generateV4UploadSignedUrl(fileName: string, contentType: string) 
 
     // Get a v4 signed URL for uploading file
     const url = await storage
-        .bucket(bucketName)
+        .bucket(UPLOADED_VIDEO_BUCKET_NAME)
         .file(fileName)
         .getSignedUrl(options);
 
@@ -53,6 +58,45 @@ async function generateV4UploadSignedUrl(fileName: string, contentType: string) 
 async function saveVideoMetadata(fileName: string, videoMetadata: VideoMetadata) {
     await videoCollection.doc(fileName).set(videoMetadata, { merge: true })
 }
+
+
+/**
+ * Delete video from cloud storage and video metadata from firestore if it exists
+ * @param videoId id of the video being deleted.
+ * @returns none
+ */
+export async function deleteVideo(videoId: string) {
+    let docReference = videoCollection.doc(videoId)
+    let doc = await docReference.get()
+    if (!doc.exists) {
+        return
+    }
+    let data = doc.data()!
+    console.log("DATA")
+    console.log(data)
+    let transcodedVideoBucket = await storage.bucket(TRANSCODED_VIDEO_BUCKET_NAME)
+
+    let resolutionToVideoURI: Map<string, string> = data.resolutionToVideoURI
+    resolutionToVideoURI.forEach(async (key, value) => {
+        let transcodedFileName = key + "_" + videoId
+        let file = transcodedVideoBucket.file(transcodedFileName)
+        if (await file.exists()) {
+            await file.delete()
+        }
+    })
+    await docReference.delete()
+}
+
+exports.delete_video = onRequest({ cors: [FRONTEND_URL] }, async (req: any, res: any) => {
+    const videoId = req.videoId
+    console.log(videoId)
+    if (!videoId) {
+        logger.info("video id not provided")
+        return
+    }
+    await deleteVideo(videoId)
+})
+
 
 exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (req: any, res: any) => {
     // corsHandler(req, res, async () => {
@@ -70,7 +114,7 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
         return
     }
 
-    logger.info(bucketName)
+    logger.info(UPLOADED_VIDEO_BUCKET_NAME)
     logger.info(req.body)
     logger.info(fileName)
 
@@ -84,7 +128,6 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
 
     }).then(() => {
         console.log("FINISH Putting video metadata into firestore")
-
         generateV4UploadSignedUrl(fileName, contentType).then((url) => {
             res.set('Access-Control-Allow-Origin', "*");
             res.status(200).json({ result: url })
@@ -98,7 +141,8 @@ exports.create_signed_url_for_video_upload = onRequest({ cors: true }, async (re
         res.set('Access-Control-Allow-Origin', "*");
         res.status(500).json({ error: 'Signed url not generated successfully' })
     })
-
-
 });
+
+
+
 
